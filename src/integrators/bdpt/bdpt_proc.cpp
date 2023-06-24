@@ -308,8 +308,10 @@ public:
                     sampleValue += value * miWeight;
                 else
                     wr->putLightSample(samplePos, value * miWeight);
+                    //std::cout<<"light: "<<(value * miWeight).toString()<<std::endl;
             }
         }
+        //std::cout<<"normal: "<<sampleValue.toString()<<std::endl;
         wr->putSample(initialSamplePos, sampleValue);
     }
 

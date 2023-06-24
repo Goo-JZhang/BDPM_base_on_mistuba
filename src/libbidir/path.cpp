@@ -59,6 +59,59 @@ int Path::randomWalk(const Scene *scene, Sampler *sampler,
     return nSteps;
 }
 
+int Path::randomWalkFromPixelV(const Scene *scene, Sampler *sampler,
+        int nSteps, const Point2i &pixelPosition, int rrStart, MemoryPool &pool,
+        PathVertex::EVertexType tp)
+{
+    PathVertex *v1 = pool.allocVertex(), *v2 = pool.allocVertex();
+    PathEdge *e0 = pool.allocEdge(), *e1 = pool.allocEdge();
+
+    /* Use a special sampling routine for the first two sensor vertices so that
+       the resulting subpath passes through the specified pixel position */
+    int t = vertex(0)->sampleSensor(scene,
+        sampler, pixelPosition, e0, v1, e1, v2);
+
+    if (t < 1) {
+        pool.release(e0);
+        pool.release(v1);
+        return 0;
+    }
+
+    append(e0, v1);
+
+    if (t < 2) {
+        pool.release(e1);
+        pool.release(v2);
+        return 1;
+    }
+
+    append(e1, v2);
+
+    PathVertex *predVertex = v1, *curVertex = v2;
+    PathEdge *predEdge = e1;
+    Spectrum throughput(1.0f);
+
+    for (; t<nSteps || nSteps == -1; ++t) {
+        PathVertex *succVertex = pool.allocVertex();
+        PathEdge *succEdge = pool.allocEdge();
+
+        if (!curVertex->sampleNext(scene, sampler, predVertex, predEdge, succEdge,
+                succVertex, ERadiance, rrStart != -1 && t >= rrStart, &throughput)) {
+            pool.release(succVertex);
+            pool.release(succEdge);
+            return t;
+        }
+        succVertex->type = tp;
+        append(succEdge, succVertex);
+
+        predVertex = curVertex;
+        curVertex = succVertex;
+        predEdge = succEdge;
+    }
+
+    return nSteps;
+}
+
 int Path::randomWalkFromPixel(const Scene *scene, Sampler *sampler,
         int nSteps, const Point2i &pixelPosition, int rrStart, MemoryPool &pool) {
 

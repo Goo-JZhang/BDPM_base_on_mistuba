@@ -134,6 +134,7 @@ class BDPTIntegrator : public Integrator {
 public:
     BDPTIntegrator(const Properties &props) : Integrator(props) {
         /* Load the parameters / defaults */
+        //std::cout<<"load config"<<std::endl;
         m_config.maxDepth = props.getInteger("maxDepth", -1);
         m_config.rrDepth = props.getInteger("rrDepth", 5);
         m_config.lightImage = props.getBoolean("lightImage", true);

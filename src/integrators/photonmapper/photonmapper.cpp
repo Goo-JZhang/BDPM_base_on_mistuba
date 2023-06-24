@@ -273,12 +273,15 @@ public:
 
             ref<PhotonMap> globalPhotonMap = proc->getPhotonMap();
             if (globalPhotonMap->isFull()) {
-                Log(EDebug, "Global photon map full. Shot " SIZE_T_FMT " particles, excess photons due to parallelism: "
+                Log(EInfo, "Global photon map full. Shot " SIZE_T_FMT " particles, excess photons due to parallelism: "
                     SIZE_T_FMT, proc->getShotParticles(), proc->getExcessPhotons());
 
                 m_globalPhotonMap = globalPhotonMap;
+                //std::cout<<(*m_globalPhotonMap)[0].getPower().toString()<<std::endl;
                 m_globalPhotonMap->setScaleFactor(1 / (Float) proc->getShotParticles());
                 m_globalPhotonMap->build();
+                //std::cout<<proc->getShotParticles()<<std::endl;
+                //std::cout<<(*m_globalPhotonMap)[0].getPower().toString()<<std::endl;
                 m_globalPhotonMapID = sched->registerResource(m_globalPhotonMap);
             }
         }
@@ -304,7 +307,7 @@ public:
 
             ref<PhotonMap> causticPhotonMap = proc->getPhotonMap();
             if (causticPhotonMap->isFull()) {
-                Log(EDebug, "Caustic photon map full. Shot " SIZE_T_FMT " particles, excess photons due to parallelism: "
+                Log(EInfo, "Caustic photon map full. Shot " SIZE_T_FMT " particles, excess photons due to parallelism: "
                     SIZE_T_FMT, proc->getShotParticles(), proc->getExcessPhotons());
 
                 m_causticPhotonMap = causticPhotonMap;
@@ -336,7 +339,7 @@ public:
 
             ref<PhotonMap> volumePhotonMap = proc->getPhotonMap();
             if (volumePhotonMap->isFull()) {
-                Log(EDebug, "Volume photon map full. Shot " SIZE_T_FMT " particles, excess photons due to parallelism: "
+                Log(EInfo, "Volume photon map full. Shot " SIZE_T_FMT " particles, excess photons due to parallelism: "
                     SIZE_T_FMT, proc->getShotParticles(), proc->getExcessPhotons());
 
                 volumePhotonMap->setScaleFactor(1 / (Float) proc->getShotParticles());
@@ -482,6 +485,8 @@ public:
                 LiSurf += bsdfVal * m_parentIntegrator->Li(bsdfRay, rRec2);
             }
         }
+
+        //return LiSurf * transmittance + LiMedium;
 
         /* Estimate the direct illumination if this is requested */
         int numEmitterSamples = m_directSamples, numBSDFSamples;
@@ -640,6 +645,8 @@ public:
                 }
             }
         }
+
+        //std::cout<<(LiSurf * transmittance + LiMedium).toString()<<std::endl;
 
         return LiSurf * transmittance + LiMedium;
     }

@@ -105,6 +105,10 @@ public:
         int nSteps, int rrStart, ETransportMode mode,
         MemoryPool &pool);
 
+    int randomWalkFromPixelV(const Scene *scene, Sampler *sampler,
+        int nSteps, const Point2i &pixelPosition, int rrStart, MemoryPool &pool,
+        PathVertex::EVertexType tp);
+
     /**
      * \brief Perform a random walk starting at a specified
      * pixel on the sensor

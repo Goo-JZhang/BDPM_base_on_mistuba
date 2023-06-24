@@ -172,7 +172,8 @@ GatherPhotonProcess::GatherPhotonProcess(EGatherType type, size_t photonCount,
     const void *progressReporterPayload)
     : ParticleProcess(ParticleProcess::EGather, photonCount, granularity, "Gathering photons",
       progressReporterPayload), m_type(type), m_photonCount(photonCount), m_maxDepth(maxDepth),
-      m_rrDepth(rrDepth),  m_isLocal(isLocal), m_autoCancel(autoCancel), m_excess(0), m_numShot(0) {
+      m_rrDepth(rrDepth),  m_isLocal(isLocal), m_autoCancel(autoCancel), m_excess(0), m_numShot(0) 
+{
     m_photonMap = new PhotonMap(photonCount);
 }
 
@@ -191,6 +192,7 @@ void GatherPhotonProcess::processResult(const WorkResult *wr, bool cancelled) {
     LockGuard lock(m_resultMutex);
 
     size_t nParticles = 0;
+    //std::cout<<"particles num:"<<vec.getParticleCount()<<std::endl;
     for (size_t i=0; i<vec.getParticleCount(); ++i) {
         size_t start = vec.getParticleIndex(i),
                end   = vec.getParticleIndex(i+1);

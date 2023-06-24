@@ -130,7 +130,8 @@ void ParticleTracer::process(const WorkUnit *workUnit, WorkResult *workResult,
         Spectrum power;
         Ray ray;
 
-        if (m_emissionEvents) {
+        if (m_emissionEvents) 
+        {
             /* Sample the position and direction component separately to
                generate emission events */
             power = m_scene->sampleEmitterPosition(pRec, m_sampler->next2D());

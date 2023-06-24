@@ -1,3 +1,5 @@
+.vscode/
+
 # Documentation
 doc/apidocs/*
 doc/*.aux
