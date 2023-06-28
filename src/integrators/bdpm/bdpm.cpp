@@ -281,15 +281,15 @@ public:
 
                     added_revprob *= mRec.pdfSuccess * q;
 
-                    //handleMediumInteraction(depth, nullInteractions, 
-                    //            delta, mRec, medium, -ray.d, throughput*power);
+                    handleMediumInteraction(depth, nullInteractions, 
+                                delta, mRec, medium, -ray.d, throughput*power);
                     
                     PhaseFunctionSamplingRecord pRec(mRec, -ray.d, EImportance);
 
                     throughput *= medium->getPhaseFunction()->sample(pRec, dirpdf, m_sampler);
                     
-                    handleMediumInteraction(depth, nullInteractions, 
-                                delta, mRec, medium, -ray.d, throughput*power);
+                    //handleMediumInteraction(depth, nullInteractions, 
+                    //            delta, mRec, medium, -ray.d, throughput*power);
                     
                     delta = false;
 
@@ -301,7 +301,6 @@ public:
                     added_revprob *= medium->getPhaseFunction()->pdf(pRec);
                     revprob.push_back(added_revprob);
                     posprob.push_back(added_posprob);
-
                     handleProbs(posprob, revprob);
                 }
                 else if(its.t == std::numeric_limits<Float>::infinity())
@@ -321,7 +320,7 @@ public:
 
                     const BSDF *bsdf = its.getBSDF();
 
-                    //handleSurfaceInteraction(depth, nullInteractions, delta, its, medium, throughput*power);
+                    handleSurfaceInteraction(depth, nullInteractions, delta, its, medium, throughput*power);
                     //if((throughput*power).max() > 2e8) std::cout<<(throughput*power).toString()+"\n";
                     BSDFSamplingRecord bRec(its, m_sampler, EImportance);
 
@@ -335,7 +334,7 @@ public:
                     }
                     throughput *= bsdfWeight;
 
-                    handleSurfaceInteraction(depth, nullInteractions, delta, its, medium, throughput*power);
+                    //handleSurfaceInteraction(depth, nullInteractions, delta, its, medium, throughput*power);
                     /*
                     Vector wi = -ray.d, wo = its.toWorld(bRec.wo);
                     Float wiDotGeoN = dot(its.geoFrame.n, wi),
@@ -753,7 +752,7 @@ public:
                         break;
                     }
 
-                    if(depth == 1 && its.isEmitter())
+                    if(delta && its.isEmitter())
                     {
                         L += throughput * its.Le(-ray.d);
                         //if((throughput * its.Le(-ray.d)).max() > 1)std::cout<<"emit light:" + (throughput * its.Le(-ray.d)).toString() + "\n";
@@ -821,6 +820,7 @@ public:
 
                         if(its.isMediumTransition()) medium = its.getTargetMedium(ray.d);
                         delta = bRec.sampledType & BSDF::EDelta;
+                        if(delta == true) std::cout<<"mirror reflection\n";
 
                         //revprob
                         swapv(bRec.wi, bRec.wo);
@@ -830,7 +830,7 @@ public:
 
                         L += curput * evaluateSurface(sensorRayPath, its, delta);
 
-                        //if(depth == 1) std::cout<<posprob<<" , "<<curput.toString()<<std::endl;
+                        //if(depth > 3) std::cout<<depth<<": "<<curput.toString()<<"\n";
                         //std::cout<<curput.toString()<<std::endl;//<<","<<evaluateSurface(sensorRayPath, its).toString()<<std::endl;
                     }
                     if(depth++ >= m_config.rrDepth)
@@ -885,13 +885,15 @@ public:
                                     its.wi,
                                     EImportance);
             float tosensor = its.getBSDF()->pdf(bRec, delta ? EMeasure::EDiscrete: EMeasure::ESolidAngle);
-            Float ratio = std::abs(Frame::cosTheta(bRec.wi) / (wiDotGeoN * Frame::cosTheta(bRec.wo)));
+            Float ratio = //std::abs(wiDotShN / wiDotGeoN);//
+                        std::abs(Frame::cosTheta(bRec.wi) /(wiDotGeoN * Frame::cosTheta(bRec.wo)));
+            //std::cout<<(float)ratio<<"\n";
             if(tosensor < 1e-6) continue;
             Spectrum bsdfspectrum = its.getBSDF()->eval(bRec, delta ? EMeasure::EDiscrete: EMeasure::ESolidAngle);// / tosensor;
             swapv(bRec.wi, bRec.wo);
             float tophoton = its.getBSDF()->pdf(bRec, delta ? EMeasure::EDiscrete: EMeasure::ESolidAngle);
             //std::cout<<tosensor<<", "<<tophoton<<std::endl;
-            numer = ((*m_posProbs)[results[i].index][N-1]) * // tosensor *
+            numer = ((*m_posProbs)[results[i].index][N-1]) * //  tosensor *
                     (probpath.posProb[probpath.size()-1]);
             deno = numer;
             //back to sensor
@@ -902,7 +904,7 @@ public:
                         //(probpath.revProb[probpath.size()-1]/probpath.revProb[j]) * 
                         //((*m_posProbs)[results[i].index][N-1]);
             }
-            deno += tmp * tosensor *  probpath.revProb[probpath.size()-1] * 
+            if(probpath.size()>1) deno += tmp * tosensor *  probpath.revProb[probpath.size()-2] * 
                     (*m_posProbs)[results[i].index][N-1];
             //back to emitter
             tmp = 0.0f;
@@ -912,7 +914,7 @@ public:
                         //((*m_revProbs)[results[i].index][N-1]/(*m_revProbs)[results[i].index][j]) *
                         //(probpath.posProb[probpath.size()-1]);
             }
-            deno += tmp * tophoton * (*m_revProbs)[results[i].index][N-1] * probpath.posProb[probpath.size()-1];
+            if(N>1) deno += tmp * tophoton * (*m_revProbs)[results[i].index][N-2] * probpath.posProb[probpath.size()-1];
             if(deno>0) L += ratio * (numer/deno) * (*m_photonMap)[results[i].index].getPower() * bsdfspectrum;
         }
         //std::cout<<L.toString()<<std::endl;
@@ -943,7 +945,7 @@ public:
             float tmp = 0.0f;
             for(int j = probpath.size() - 2; j >= 0; j--)
             {
-                tmp += (probpath.posProb[j]) /probpath.revProb[j]/probpath.revProb[j];
+                tmp += (probpath.posProb[j]) /probpath.revProb[j];
                         //(probpath.revProb[probpath.size()-1]/probpath.revProb[j]) * 
                         //((*m_posProbs)[results[i].index][N-1]);
             }
@@ -1063,12 +1065,12 @@ public:
         m_config.maxDepth = props.getInteger("maxDepth", -1);
         m_config.rrDepth = props.getInteger("rrDepth", 5);
         m_config.lightImage = props.getBoolean("lightImage", true);
-        m_config.sampleCount = props.getSize("sampleCount", 500000);
+        m_config.sampleCount = props.getSize("sampleCount", 2000000);
         m_config.sampleDirect = props.getBoolean("sampleDirect", true);
         m_config.showWeighted = props.getBoolean("showWeight", false);
         m_config.maxPhoton = props.getSize("maxPhoton", 150);
         m_config.minPhoton = props.getSize("minPhoton", 0);
-        m_config.maxRadius = props.getFloat("maxRadius", 0.02);
+        m_config.maxRadius = props.getFloat("maxRadius", 0.04);
         m_config.granularity = props.getSize("granularity", 4);
 
         if (m_config.rrDepth <= 0)
